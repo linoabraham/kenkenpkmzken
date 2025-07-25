@@ -10,14 +10,11 @@ public class VentaCuentaDTO {
     private Long id;
     private Long cuentaId;
     private Long clienteId;
+    private Long perfilId;
+    private String nombreServicio; // Campo útil para frontend
+    private String urlImg;         // ✅ CAMPO AÑADIDO
     private BigDecimal precioVenta;
     private LocalDateTime fechaVenta;
     private TipoCliente tipoCliente;
     private Long usuarioAsignadorId;
-
-    /**
-     * El ID del perfil específico que se vendió.
-     * Será nulo si la venta fue de una cuenta de tipo COMPLETO.
-     */
-    private Long perfilId;
 }

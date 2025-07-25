@@ -1,6 +1,7 @@
 package com.gestion.cuentas.streaming.controller;
 
 import com.gestion.cuentas.streaming.dto.ClienteDTO;
+import com.gestion.cuentas.streaming.dto.SuscripcionesClienteDTO;
 import com.gestion.cuentas.streaming.service.ClienteService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -15,6 +16,12 @@ public class ClienteController {
 
     @Autowired
     private ClienteService clienteService;
+
+    // --- ✅ NUEVO ENDPOINT PARA VER TODAS LAS SUSCRIPCIONES DE UN CLIENTE ---
+    @GetMapping("/{id}/suscripciones")
+    public ResponseEntity<SuscripcionesClienteDTO> getSuscripcionesPorCliente(@PathVariable Long id) {
+        return ResponseEntity.ok(clienteService.getSuscripcionesPorCliente(id));
+    }
 
     @PostMapping
     public ResponseEntity<ClienteDTO> create(@RequestBody ClienteDTO clienteDTO) {
@@ -41,4 +48,5 @@ public class ClienteController {
         clienteService.delete(id);
         return ResponseEntity.noContent().build();
     }
+
 }

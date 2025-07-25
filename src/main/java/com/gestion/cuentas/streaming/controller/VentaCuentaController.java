@@ -1,6 +1,7 @@
 package com.gestion.cuentas.streaming.controller;
 
 import com.gestion.cuentas.streaming.dto.GananciaDTO;
+import com.gestion.cuentas.streaming.dto.TopClienteDTO;
 import com.gestion.cuentas.streaming.dto.VentaCuentaDTO;
 import com.gestion.cuentas.streaming.service.VentaCuentaService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,5 +39,15 @@ public class VentaCuentaController {
     @GetMapping("/mensuales/lista")
     public ResponseEntity<List<VentaCuentaDTO>> getVentasMensuales() {
         return ResponseEntity.ok(ventaCuentaService.findVentasDelMes());
+    }
+
+    @GetMapping("/diarias/top-clientes")
+    public ResponseEntity<List<TopClienteDTO>> getTopClientesDiarios() {
+        return ResponseEntity.ok(ventaCuentaService.findTopClientesDelDia());
+    }
+
+    @GetMapping("/semanales/top-clientes")
+    public ResponseEntity<List<TopClienteDTO>> getTopClientesSemanales() {
+        return ResponseEntity.ok(ventaCuentaService.findTopClientesDeLaSemana());
     }
 }

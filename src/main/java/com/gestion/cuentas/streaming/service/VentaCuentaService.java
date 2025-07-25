@@ -1,6 +1,7 @@
 package com.gestion.cuentas.streaming.service;
 
 import com.gestion.cuentas.streaming.dto.GananciaDTO;
+import com.gestion.cuentas.streaming.dto.TopClienteDTO;
 import com.gestion.cuentas.streaming.dto.VentaCuentaDTO;
 import com.gestion.cuentas.streaming.entity.VentaCuenta;
 import com.gestion.cuentas.streaming.repository.VentaCuentaRepository;
@@ -10,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -51,6 +53,19 @@ public class VentaCuentaService {
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
         return new GananciaDTO(LocalDate.now().withDayOfMonth(1), ventas.size(), total);
     }
+    // Añade estos métodos a tu VentaCuentaService.java
+
+    public List<TopClienteDTO> findTopClientesDelDia() {
+        List<VentaCuenta> ventas = ventaCuentaRepository.findVentasDelDia();
+        return calcularTopClientes(ventas);
+    }
+
+    public List<TopClienteDTO> findTopClientesDeLaSemana() {
+        // En el método findTopClientesDeLaSemana()
+        LocalDateTime inicioDeSemana = LocalDate.now().with(java.time.DayOfWeek.MONDAY).atStartOfDay();
+        List<VentaCuenta> ventas = ventaCuentaRepository.findVentasDeLaSemana(inicioDeSemana);
+        return calcularTopClientes(ventas);
+    }
 
     /**
      * Convierte la entidad VentaCuenta a su DTO, incluyendo ahora el ID del perfil si existe.
@@ -65,11 +80,35 @@ public class VentaCuentaService {
         dto.setTipoCliente(venta.getTipoCliente());
         dto.setUsuarioAsignadorId(venta.getUsuarioAsignador().getId());
 
-        // Si la venta tiene un perfil asociado, se añade su ID al DTO.
+        if (venta.getCuenta().getServicio() != null) {
+            dto.setNombreServicio(venta.getCuenta().getServicio().getNombre());
+            // ✅ LÓGICA AÑADIDA para la imagen
+            dto.setUrlImg(venta.getCuenta().getServicio().getUrlImg());
+        }
+
         if (venta.getPerfil() != null) {
             dto.setPerfilId(venta.getPerfil().getId());
         }
 
         return dto;
     }
+
+    // Método auxiliar privado para procesar la lista de ventas
+    private List<TopClienteDTO> calcularTopClientes(List<VentaCuenta> ventas) {
+        return ventas.stream()
+                .collect(Collectors.groupingBy(
+                        VentaCuenta::getCliente, // Agrupa por objeto Cliente
+                        Collectors.counting()    // Cuenta cuántas ventas tiene cada uno
+                ))
+                .entrySet().stream() // Convierte el mapa a un stream de entradas (Cliente, Conteo)
+                .map(entry -> new TopClienteDTO(
+                        entry.getKey().getId(),
+                        entry.getKey().getNombre() + " " + entry.getKey().getApellido(),
+                        entry.getKey().getNumero(),
+                        entry.getValue()
+                ))
+                .sorted((c1, c2) -> c2.getTotalCompras().compareTo(c1.getTotalCompras())) // Ordena de mayor a menor
+                .collect(Collectors.toList());
+    }
+
 }

@@ -1,7 +1,12 @@
 package com.gestion.cuentas.streaming.service;
 
 import com.gestion.cuentas.streaming.dto.ClienteDTO;
+import com.gestion.cuentas.streaming.dto.CuentaAsignadaDTO;
+import com.gestion.cuentas.streaming.dto.PerfilDTO;
+import com.gestion.cuentas.streaming.dto.SuscripcionesClienteDTO;
 import com.gestion.cuentas.streaming.entity.Cliente;
+import com.gestion.cuentas.streaming.entity.Cuenta;
+import com.gestion.cuentas.streaming.entity.Perfil;
 import com.gestion.cuentas.streaming.repository.ClienteRepository;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -56,6 +61,33 @@ public class ClienteService {
         return convertToDTO(updated);
     }
 
+    // --- ✅ NUEVO MÉTODO PRINCIPAL ---
+    @Transactional(readOnly = true)
+    public SuscripcionesClienteDTO getSuscripcionesPorCliente(Long clienteId) {
+        // 1. Buscamos al cliente
+        Cliente cliente = clienteRepository.findById(clienteId)
+                .orElseThrow(() -> new EntityNotFoundException("Cliente no encontrado con id: " + clienteId));
+
+        SuscripcionesClienteDTO response = new SuscripcionesClienteDTO();
+        response.setClienteId(cliente.getId());
+        response.setNombreCliente(cliente.getNombre() + " " + cliente.getApellido());
+        response.setNumeroCliente(cliente.getNumero());
+
+        // 2. Obtenemos y convertimos sus cuentas COMPLETAS
+        List<CuentaAsignadaDTO> cuentasDTO = cliente.getCuentas().stream()
+                .map(this::convertCuentaToAsignadaDTO)
+                .collect(Collectors.toList());
+        response.setCuentasCompletas(cuentasDTO);
+
+        // 3. Obtenemos y convertimos sus perfiles INDIVIDUALES
+        List<PerfilDTO> perfilesDTO = cliente.getPerfilesAsignados().stream()
+                .map(this::convertPerfilToDTO)
+                .collect(Collectors.toList());
+        response.setPerfilesIndividuales(perfilesDTO);
+
+        return response;
+    }
+
     public void delete(Long id) {
         if (!clienteRepository.existsById(id)) {
             throw new EntityNotFoundException("Cliente no encontrado con id: " + id);
@@ -90,5 +122,43 @@ public class ClienteService {
         entity.setEstadoEmocional(dto.getEstadoEmocional());
         entity.setResponsable(dto.getResponsable());
         entity.setTipoCliente(dto.getTipoCliente());
+    }
+
+    private CuentaAsignadaDTO convertCuentaToAsignadaDTO(Cuenta cuenta) {
+        CuentaAsignadaDTO dto = new CuentaAsignadaDTO();
+        dto.setCuentaId(cuenta.getId());
+        dto.setCorreo(cuenta.getCorreo());
+        if (cuenta.getServicio() != null) {
+            dto.setNombreServicio(cuenta.getServicio().getNombre());
+            dto.setUrlImgServicio(cuenta.getServicio().getUrlImg());
+        }
+        dto.setFechaInicio(cuenta.getFechaInicio());
+        dto.setFechaRenovacion(cuenta.getFechaRenovacion());
+        dto.setStatus(cuenta.getStatus().name());
+        return dto;
+    }
+
+    // Este método es una copia del que está en CuentaService para mantener los servicios separados
+    private PerfilDTO convertPerfilToDTO(Perfil perfil) {
+        PerfilDTO dto = new PerfilDTO();
+        dto.setId(perfil.getId());
+        dto.setNombrePerfil(perfil.getNombrePerfil());
+        if (perfil.getCuenta() != null) {
+            dto.setCorreoCuenta(perfil.getCuenta().getCorreo());
+            dto.setContraseña(perfil.getCuenta().getContraseña());
+            dto.setPin(perfil.getCuenta().getPin());
+            if (perfil.getCuenta().getServicio() != null) {
+                dto.setUrlImg(perfil.getCuenta().getServicio().getUrlImg());
+            }
+        }
+        if (perfil.getCliente() != null) {
+            dto.setClienteId(perfil.getCliente().getId());
+            dto.setNombreCliente(perfil.getCliente().getNombre());
+            dto.setNumero(perfil.getCliente().getNumero());
+        }
+        dto.setFechaInicio(perfil.getFechaInicio());
+        dto.setFechaRenovacion(perfil.getFechaRenovacion());
+        dto.setPrecioVenta(perfil.getPrecioVenta());
+        return dto;
     }
 }
