@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 
 @Data
 @NoArgsConstructor
@@ -13,4 +14,6 @@ public class AsignarCuentaDTO {
     private Long clienteId;
     private BigDecimal precioVenta;
     private Long usuarioAsignadorId;
+    private LocalDate fechaInicio;
+    private LocalDate fechaRenovacion;
 }

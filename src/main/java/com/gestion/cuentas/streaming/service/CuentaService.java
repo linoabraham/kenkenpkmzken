@@ -414,9 +414,6 @@ public class CuentaService {
         Usuario usuarioAsignador = usuarioRepository.findById(asignarDTO.getUsuarioAsignadorId())
                 .orElseThrow(() -> new EntityNotFoundException("Usuario asignador no encontrado con id: " + asignarDTO.getUsuarioAsignadorId()));
 
-        // --- LÓGICA DE VALIDACIÓN CORREGIDA ---
-        // La condición ahora comprueba correctamente si la cuenta ya tiene un cliente
-        // O si alguno de sus perfiles ya está asignado.
         if (cuenta.getCliente() != null || cuenta.getPerfilesAsignados().stream().anyMatch(p -> p.getCliente() != null)) {
             throw new IllegalArgumentException("Esta cuenta ya fue vendida o tiene perfiles asignados.");
         }
@@ -425,14 +422,27 @@ public class CuentaService {
             throw new IllegalArgumentException("Este método solo es para asignar cuentas de tipo COMPLETO.");
         }
 
+        // --- ✅ LÓGICA DE FECHAS FLEXIBLE ---
+        // 1. Si el DTO trae una fecha de inicio, la usamos. Si no, usamos la fecha de hoy.
+        LocalDate fechaDeInicio = (asignarDTO.getFechaInicio() != null)
+                ? asignarDTO.getFechaInicio()
+                : LocalDate.now();
+
+        // 2. Si el DTO trae una fecha de renovación, la usamos. Si no, la calculamos (inicio + 30 días).
+        LocalDate fechaDeRenovacion = (asignarDTO.getFechaRenovacion() != null)
+                ? asignarDTO.getFechaRenovacion()
+                : fechaDeInicio.plusDays(30);
+
         cuenta.setCliente(cliente);
         cuenta.setStatus(StatusCuenta.ACTIVO);
-        cuenta.setFechaInicio(LocalDate.now());
-        cuenta.setFechaRenovacion(LocalDate.now().plusDays(30));
+
+        // 3. Usamos las variables que acabamos de calcular para establecer las fechas.
+        cuenta.setFechaInicio(fechaDeInicio);           // ⬅️ CAMBIO
+        cuenta.setFechaRenovacion(fechaDeRenovacion);   // ⬅️ CAMBIO
+
         cuenta.setPrecioVenta(asignarDTO.getPrecioVenta());
         cuentaRepository.save(cuenta);
 
-        // Esta llamada ahora funcionará porque encontrará el método de 4 argumentos.
         VentaCuenta venta = registrarVenta(cuenta, cliente, asignarDTO.getPrecioVenta(), usuarioAsignador);
         return convertVentaToDTO(venta);
     }
