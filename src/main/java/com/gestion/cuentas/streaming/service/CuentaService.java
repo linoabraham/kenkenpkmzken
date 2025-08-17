@@ -195,6 +195,50 @@ public class CuentaService {
     }
 
 
+    /**
+     * Absuelve una cuenta que estaba en estado REPORTADO, devolviéndola a SINUSAR.
+     * Esta acción libera al cliente (si es COMPLETA) o a todos los perfiles
+     * (si es INDIVIDUAL), dejando la cuenta lista para un nuevo uso.
+     * @param cuentaId El ID de la cuenta a absolver.
+     * @return El DTO de la cuenta en su nuevo estado limpio.
+     */
+    public CuentaDTO absolverCuentaReportada(Long cuentaId) {
+        // 1. Buscamos la cuenta
+        Cuenta cuenta = cuentaRepository.findById(cuentaId)
+                .orElseThrow(() -> new EntityNotFoundException("Cuenta no encontrada, id: " + cuentaId));
+
+        // 2. ✅ Validación clave: solo se puede absolver si está reportada
+        if (cuenta.getStatus() != StatusCuenta.REPORTADO) {
+            throw new IllegalStateException("Solo se puede absolver una cuenta que está en estado REPORTADO.");
+        }
+
+        // 3. Limpiamos la cuenta según su tipo
+        if (cuenta.getTipoCuenta() == TipoCuenta.COMPLETO) {
+            // Si es completa, solo quitamos el cliente
+            cuenta.setCliente(null);
+        } else if (cuenta.getTipoCuenta() == TipoCuenta.INDIVIDUAL) {
+            // Si es individual, liberamos cada perfil
+            for (Perfil perfil : cuenta.getPerfilesAsignados()) {
+                perfil.setCliente(null);
+                perfil.setFechaInicio(null);
+                perfil.setFechaRenovacion(null);
+                perfil.setPrecioVenta(null);
+                perfil.setNombrePerfil("Perfil " + perfil.getId()); // Lo reseteamos a genérico
+            }
+        }
+
+        // 4. Reseteamos los datos principales de la cuenta
+        cuenta.setStatus(StatusCuenta.SINUSAR);
+        cuenta.setFechaInicio(null);
+        cuenta.setFechaRenovacion(null);
+        cuenta.setPrecioVenta(null);
+
+        // 5. Guardamos y devolvemos el resultado
+        Cuenta cuentaActualizada = cuentaRepository.save(cuenta);
+        return convertToDTO(cuentaActualizada);
+    }
+
+
 
 
 
@@ -406,6 +450,8 @@ public class CuentaService {
         cuentaRepository.deleteById(id);
     }
 
+    // Reemplaza este método en tu CuentaService.java
+
     public VentaCuentaDTO asignarCuenta(AsignarCuentaDTO asignarDTO) {
         Cuenta cuenta = cuentaRepository.findById(asignarDTO.getCuentaId())
                 .orElseThrow(() -> new EntityNotFoundException("Cuenta no encontrada con id: " + asignarDTO.getCuentaId()));
@@ -446,7 +492,6 @@ public class CuentaService {
         VentaCuenta venta = registrarVenta(cuenta, cliente, asignarDTO.getPrecioVenta(), usuarioAsignador);
         return convertVentaToDTO(venta);
     }
-
 
 
     /**
@@ -525,6 +570,38 @@ public class CuentaService {
         // 5. Guardar y devolver
         Perfil perfilRenovado = perfilRepository.save(perfil);
         return convertPerfilToDTO(perfilRenovado);
+    }
+
+
+
+    /**
+     * Actualiza únicamente la contraseña de una cuenta.
+     * Solo permite la operación si la cuenta está en estado ACTIVO.
+     * @param cuentaId El ID de la cuenta a modificar.
+     * @param dto El DTO que contiene la nueva contraseña.
+     * @return El DTO de la cuenta con la contraseña actualizada.
+     */
+    public CuentaDTO cambiarContrasena(Long cuentaId, CambiarContrasenaDTO dto) {
+        // 1. Buscamos la cuenta
+        Cuenta cuenta = cuentaRepository.findById(cuentaId)
+                .orElseThrow(() -> new EntityNotFoundException("Cuenta no encontrada, id: " + cuentaId));
+
+        // 2. ✅ Validación clave: solo se puede cambiar si está activa
+        if (cuenta.getStatus() != StatusCuenta.ACTIVO) {
+            throw new IllegalStateException("Solo se puede cambiar la contraseña de una cuenta en estado ACTIVO.");
+        }
+
+        // 3. Validamos que la nueva contraseña no esté vacía
+        if (dto.getNuevaContrasena() == null || dto.getNuevaContrasena().trim().isEmpty()) {
+            throw new IllegalArgumentException("La nueva contraseña no puede estar vacía.");
+        }
+
+        // 4. Actualizamos únicamente la contraseña
+        cuenta.setContraseña(dto.getNuevaContrasena());
+
+        // 5. Guardamos y devolvemos
+        Cuenta cuentaActualizada = cuentaRepository.save(cuenta);
+        return convertToDTO(cuentaActualizada);
     }
 
 

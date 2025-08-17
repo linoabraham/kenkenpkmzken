@@ -14,6 +14,8 @@ public class AsignarCuentaDTO {
     private Long clienteId;
     private BigDecimal precioVenta;
     private Long usuarioAsignadorId;
+
+    // ✅ CAMPOS AÑADIDOS
     private LocalDate fechaInicio;
     private LocalDate fechaRenovacion;
 }

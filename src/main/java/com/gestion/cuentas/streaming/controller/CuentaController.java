@@ -143,6 +143,23 @@ public class CuentaController {
         return ResponseEntity.ok(perfilesVencidos);
     }
 
+    // Añade este método a tu CuentaController.java
+
+    @PatchMapping("/{id}/cambiar-contrasenaenuso")
+    public ResponseEntity<CuentaDTO> cambiarContrasena(
+            @PathVariable Long id,
+            @RequestBody CambiarContrasenaDTO dto) {
+
+        CuentaDTO cuentaActualizada = cuentaService.cambiarContrasena(id, dto);
+        return ResponseEntity.ok(cuentaActualizada);
+    }
+
+    @PatchMapping("/{id}/absolver-cuentareportada")
+    public ResponseEntity<CuentaDTO> absolverCuentaReportada(@PathVariable Long id) {
+        CuentaDTO cuentaActualizada = cuentaService.absolverCuentaReportada(id);
+        return ResponseEntity.ok(cuentaActualizada);
+    }
+
 
 
 
